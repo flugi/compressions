@@ -1,0 +1,10 @@
+CMakeFiles/*
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+myvlc_test
+vlc.config
+vlc.creator
+vlc.creator.user
+vlc.files
+vlc.includes
