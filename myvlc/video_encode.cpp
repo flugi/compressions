@@ -11,7 +11,7 @@ vector<unsigned short> load16bitraw(string fname, int w, int h) {
     vector<unsigned short> res;
     vector<unsigned short> frame(w*h);
     ifstream f(fname, ios::binary);
-    f.read((char*)(&frame[0]),8); //header
+    f.read((char*)(&frame[0]),7); //header
 
     f.read((char*)(&frame[0]),w*h*2);
     while (f.good()) {
@@ -44,10 +44,6 @@ int main(int argc, char*argv[]) {
     vlc::chunk c;
     nbc.encode(raw, c);
     cout <<"Semiblockcode: "<< c.get_size_bits()/8+1<< endl;
-    ofstream f("hist.txt");
-    for (pair<int, int> a : hist) {
-        f <<a.first << " "<< a.second << endl;
-    }
 
     HuffmanCode hc;
     hc.build(raw);
@@ -58,6 +54,20 @@ int main(int argc, char*argv[]) {
 
     c.save_file("semiblock.data");
     c2.save_file("huffman.data");
+
+    ofstream f("hist.txt");
+    for (pair<int, int> a : hist) {
+		chunk n_c;
+		chunk huf_c;
+		nbc.put_element(zigzag(a.first),n_c);
+		hc.put_element(a.first, huf_c);
+        f <<a.first << " "<< a.second << " ";
+        huf_c.debugprint(f);
+        f << " ";
+        n_c.debugprint(f);
+        f << endl;
+        
+    }
 
     return 0;
 }

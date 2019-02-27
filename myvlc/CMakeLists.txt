@@ -1,6 +1,6 @@
 project(MyVLC)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -g")
+set(CMAKE_CXX_FLAGS "-std=c++11 -g -O3")
 add_executable(myvlc_test main.cpp)
 
 add_executable(video_encode video_encode.cpp)
