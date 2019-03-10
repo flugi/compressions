@@ -17,7 +17,7 @@ string prettyprint(string s) {
 vector<int > lzw(ifstream & f) {
     vector<int > buf;
     map<string, int> dic;
-    for (int i=0;i<255;i++) {
+    for (int i=0;i<=255;i++) {
 		char c = i;
 		dic[string(1,c)]=i;
     }
@@ -61,7 +61,7 @@ string unlzw(vector<int> z) {
     string res;
     map<string, int> dic;
     vector<string> table;
-    for (int i=0;i<255;i++) {
+    for (int i=0;i<=255;i++) {
 		char c = i;
 		dic[string(1,c)]=i;
 		table.push_back(string(1,c));
@@ -74,6 +74,7 @@ string unlzw(vector<int> z) {
         if (next_item<table.size()) {
         	nextfirstletter = table[next_item][0];
         } else {
+            cout << "!!!";
         	nextfirstletter = table[z[i]][0];
         }
         cout << table.size() << " " << z[i] << " " << z[i+1] << " " << prettyprint(table[z[i]]) << endl;

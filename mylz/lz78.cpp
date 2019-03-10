@@ -21,7 +21,12 @@ vector<pair<int, unsigned char> > lz78(ifstream & f) {
             int newindex = table.size();
             string prevs = s.substr(0,s.length()-1);
             int oldindex = index[prevs]; //inserts zeroes if not found - thats all right.
-            cout << oldindex << " " << a << " | " << newindex << " " << prevs << " " << s << endl;
+//            cout << oldindex << " " << a << " | " << newindex << " " << prevs << " " << s << endl;
+/*          for (string s : table) {
+                cout <<"'"<< s << "' ";
+            }
+*/
+            cout << endl;
             index[s] = newindex;
             table.push_back(s);
             buf.push_back(make_pair(oldindex,a));
@@ -59,7 +64,7 @@ string unlz78(vector<pair<int, unsigned char> > z) {
 
 
 int main() {
-    ifstream f("lz78.cpp",ios::binary);
+    ifstream f("short.txt",ios::binary);
     if (!f.good()) {
         cerr << "nincs meg a file" << endl;
         exit(1);
