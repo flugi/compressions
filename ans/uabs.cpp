@@ -8,10 +8,10 @@ using namespace std;
 void binary_decodingtable(double p, int max = 32) {
     for(int i=0;i<max;i++) {
         int x=i;
-        int s1 = ceil((x+1)*p) - ceil(x*p);  // 0 if fract(x*p) < 1-p, else 1
+        int s1 = ceil((x+1)*p) - ceil(x*p);  
         int dec_x;
-        if (s1 == 0 ) dec_x = x - ceil(x*p);   // D(x) = (new_x, 0)
-        if (s1 == 1 ) dec_x = ceil(x*p);  // D(x) = (new_x, 1)}
+        if (s1 == 0 ) dec_x = x - ceil(x*p); 
+        if (s1 == 1 ) dec_x = ceil(x*p);  
         cout << x << " " << (s1?" ":"    ") << dec_x << endl;
     }
 }
@@ -28,7 +28,7 @@ void binary_encodingtable(double p, int max = 32) {
 }
 
 class UABS {
-    int state=1;
+    size_t state=1;
     double _p0;
     vector<unsigned char> output;
 public:
@@ -50,20 +50,20 @@ public:
             state = ceil((state+1)/(1-_p0))-1;
         } else 
         state = floor(state/_p0); 
-        if (state > 255) {
+/*        if (state > 255) {
             int to_output = (state & 510)/2;
             int new_state = state & 1;
             cout << state << "->" << new_state << endl;
             output.push_back(to_output);
             state = new_state;
-        }
+        }*/
         cout << bit << " " ; dump();
     }
     void dec(vector<bool>&decoded) {
-        int s = ceil((state+1)*_p0) - ceil(state*_p0);  // 0 if fract(x*p) < 1-p, else 1
-        int dec_x;
-        if (s == 0 ) dec_x = state - ceil(state*_p0);   // D(x) = (new_x, 0)
-        if (s == 1 ) dec_x = ceil(state*_p0);  // D(x) = (new_x, 1)}
+        int s = ceil((state+1)*_p0) - ceil(state*_p0);  
+        size_t dec_x;
+        if (s == 0 ) dec_x = state - ceil(state*_p0);   
+        if (s == 1 ) dec_x = ceil(state*_p0);  
         decoded.push_back(s);
         state = dec_x;
         if (dec_x <2 && !output.empty()) {
@@ -77,11 +77,11 @@ public:
 int main() {
     srand(time(0));
     double p = 0.3;
-    binary_decodingtable(p,341);
-    binary_encodingtable(p,341);
+    binary_decodingtable(p,1000);
+    binary_encodingtable(p,1000);
     UABS codec(p);
     vector<bool> data;//({1,1,0,1,0,0,1,1,1});
-    int N = 10;
+    int N = 20;
     for (int i=0;i<N;i++) {
         data.push_back(rand()%100 < p*100);
     }
