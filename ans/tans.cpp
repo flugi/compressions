@@ -26,7 +26,75 @@ struct tANS
     vector<int> D;
     int L;
     int max_I_size;
-    tANS(string s) {
+    map<char, int> freq;
+    void set_cbloom(string s) {
+        int M = s.length();
+        cout << "M: " << M << endl;
+        for (char c : s) {
+            alphabet.insert(c);
+            freq[c]++;
+        }
+        for (char c : alphabet) {
+            char2alphabetindex[c]=symbol.length();
+            symbol += c;
+        }
+        indices=vector<set<int> >(alphabet.size());
+        for (char c : alphabet) {
+            int s = char2alphabetindex.at(c);
+            for (int j=freq.at(c);j<2*freq.at(c);j++) {
+                indices[s].insert(j);
+            }
+            cout << endl;
+        }
+        for (size_t i=0;i<indices.size();i++) {
+            cout << "I of " << symbol[i] <<" :" ;
+            for (int a : indices[i]) {
+                cout <<a << " ";
+            }
+            cout << endl;
+        }
+        tANSmap="  ";
+        t = vector<vector<int> >(M*2, vector<int>(alphabet.size(), -1));
+        vector<int> fillcount(alphabet.size(),0);
+        vector<int> fillpos(alphabet.size());
+        for (size_t i=0;i<fillpos.size();i++) {
+            fillpos[i] = freq.at(symbol[i]);
+        }
+        int nexttofill = alphabet.size()-1;
+        for (int i=M;i<2*M;i++) {
+            do {
+                ++nexttofill%=alphabet.size();
+                cout << nexttofill << " " << fillcount[nexttofill] << " " << freq.at(symbol[nexttofill]) << endl;
+            } while (fillcount[nexttofill] >= freq.at(symbol[nexttofill]));
+            cout << nexttofill << endl;
+            t[fillpos[nexttofill]][nexttofill] = i;
+            fillpos[nexttofill]++;
+            fillcount[nexttofill]++;
+            tANSmap+=symbol[nexttofill];
+        }
+        cout << "Encoding table: " << endl;
+        for (size_t i=0;i<t.size();i++) {
+            cout << i << ": " ;
+            for (int a : t[i]) {
+                cout << a << " ";
+            }
+            cout << endl;
+        }
+        D = vector<int>(2*M);
+        for (size_t i=0;i<t.size();i++) {
+            for (size_t j=0;j<t[i].size();j++) {
+                if (t[i][j]!=-1)
+                    D[t[i][j]] = i;
+            }
+        }
+        cout << "Decoding state transitions: ";
+        for (size_t i=0;i<D.size();i++) {
+            cout << i << "->" << D[i] << "   ";
+        }
+        cout << endl;
+        L=M;
+    }
+    void set_AndrewPolar(string s) {
         tANSmap = string("  ")+s; //2 spaces concatenated to shift the first character to index 2
         int ml = s.length()+1;
         assert((ml & (ml+1)) == 0);
@@ -34,12 +102,16 @@ struct tANS
         cout << L << endl;
         for (char c : s) {
             alphabet.insert(c);
+            freq[c]++;
         }
         for (char c : alphabet) {
             char2alphabetindex[c]=symbol.length();
             symbol += c;
         }
         cout <<"Symbols: " << symbol << endl;
+        for (pair<char,int> p:freq) {
+            cout << p.first << ":" << p.second;
+        }
         indices = vector<set<int> >(symbol.length());
         for (size_t i=0;i<s.length();i++) {
             indices[char2alphabetindex.at(s[i])].insert(i+2); //encoding table should start with 2 in order to avoid infinite 1->1->1 chain
@@ -64,6 +136,7 @@ struct tANS
                 t[counter++][i] = index;
             }
         }
+        
         cout << "Encoding table: " << endl;
         for (size_t i=0;i<t.size();i++) {
             cout << i << ": " ;
@@ -93,7 +166,7 @@ struct tANS
             int s = char2alphabetindex.at(data[i]);
             cout << "state : " << state << " before bit output" << endl;
             cout << "output bits: <";
-            while (state > indices[s].size()) {
+            while (state > indices[s].size()*2-1) {
                 res.push_back(state & 1);
                 cout << (state & 1);
                 state /= 2;
@@ -114,8 +187,12 @@ struct tANS
         string res="";
         size_t state = start_state;
         do {
-            char c = tANSmap[state];
-            cout <<"decoded symbol for state "<<state << " :" << c << endl;
+            cout << state << " " << L << endl;
+            char c = tANSmap[state-L+2];
+            cout << c << endl;
+            int s = char2alphabetindex.at(c);
+            int highes_state_for_s = indices.at(s).size()*2+1;
+            cout <<"decoded symbol for state "<<state << " :" << c << ", s=" << s <<" threshold:" <<highes_state_for_s<< endl;
             res+=c;
             cout << "decoded string to far: '" << res <<"'" << endl;
             int next_state = D[state];
@@ -137,12 +214,21 @@ struct tANS
 
 int main()
 {
-    string tansmap = "abacbabacbaabcabaacbbaacbabaca";
+//    string tansmap = "abacbabacbaabcabaacbbaacbabaca";
 //    string tansmap = "aaaabaaacbaaaaabaacbaaaabaaaca";
     //                2345...                      31
-    tANS tans(tansmap); 
+//    string cbloommap = "aaabbbcc";
+    string cbloommap = "aaaaaaaaabbbbbcc";
+    tANS tans;
+//    tans.set_AndrewPolar(tansmap); 
+    tans.set_cbloom(cbloommap);
 //    string to_encode = "abac";
-    string to_encode = "abaccbcbcbaabb";
+//    string to_encode = "abaccbcbcbaabb";
+//    string to_encode = "abac";
+    string to_encode = "";
+    for (int i=0;i<20;i++) {
+        to_encode += 'a'+rand()%3;
+    }
     pair<vector<bool>, int> compressed = tans.encode(to_encode);
     string decoded = tans.decode(compressed.second, compressed.first);
     if (is_reverse(to_encode, decoded)) {
