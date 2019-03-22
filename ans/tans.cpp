@@ -212,22 +212,18 @@ struct tANS
     }
 };
 
-int main()
-{
-//    string tansmap = "abacbabacbaabcabaacbbaacbabaca";
-//    string tansmap = "aaaabaaacbaaaaabaacbaaaabaaaca";
-    //                2345...                      31
-//    string cbloommap = "aaabbbcc";
-    string cbloommap = "aaaaaaaaabbbbbcc";
+void test() {
+    for (int t=0;t<1000;t++) {
+    int N = rand()%200+26;
+    string cbloommap = "abcdefghijklmnopqrstuvwxyz";
+    for (int i=0;i<N-26;i++) {
+        cbloommap += 'a'+rand()%26;
+    }
     tANS tans;
-//    tans.set_AndrewPolar(tansmap); 
     tans.set_cbloom(cbloommap);
-//    string to_encode = "abac";
-//    string to_encode = "abaccbcbcbaabb";
-//    string to_encode = "abac";
     string to_encode = "";
-    for (int i=0;i<20;i++) {
-        to_encode += 'a'+rand()%3;
+    for (int i=0;i<10+rand()%100;i++) {
+        to_encode += 'a'+rand()%26;
     }
     pair<vector<bool>, int> compressed = tans.encode(to_encode);
     string decoded = tans.decode(compressed.second, compressed.first);
@@ -237,5 +233,11 @@ int main()
         cout << "result fails" << endl;
         cout << to_encode << endl << decoded << endl;
     }
+    }
+}
+
+int main()
+{
+    test();
     return 0;
 }
