@@ -20,17 +20,18 @@ bool is_reverse(string a, string b) {
 struct tANS
 {
     vector<vector<int> > t;         // encoding table
-    set<char> alphabet;
+    set<char> alphabet;             
     string symbol;                  // s mapping
     map<char, int> char2alphabetindex;      // s mapping inverse
-    vector<set<int> > indices;      // capital I in the paper
-    string tANSmap;
-    vector<int> D;
-    int L;
-    int max_I_size;
-    map<char, int> freq;
-    ostream & out;
-    int preferred_start_state;
+    vector<set<int> > indices;      // capital I in the paper, state indices for a given symbol
+    string tANSmap;                 // string, where tANSmap[i] is the decoded symbol for state i
+    vector<int> D;                  // decoding table
+    int L;                          // Lower boundary of the states actually used while encoding, L..2L-1 is the used interval, also all probabilities are k/L rationals 
+    int max_I_size;                 // maximum value of indices, for the table size (no higher state will be needed for the encoding table)
+    map<char, int> freq;            // frequency of a symbol, occurence count in the setup string
+    ostream & out;                  // for logging or being verbose
+    int preferred_start_state;      // which state will be the start (and decoding end)
+    
     tANS(ostream & log=cout) : out(log) {}
     void setup(string s) {
         int M = s.length();
@@ -86,10 +87,10 @@ struct tANS
             }
             out << endl;
         }
-        D = vector<int>(2*M);
+        D = vector<int>(2*M,-1);
         for (size_t i=0;i<t.size();i++) {
             for (size_t j=0;j<t[i].size();j++) {
-                if (t[i][j]!=-1)
+                if (t[i][j]!=-1 && i!=0)
                     D[t[i][j]] = i;
             }
         }
@@ -99,7 +100,7 @@ struct tANS
         }
         out << endl;
         L=M;
-        preferred_start_state = L;
+        preferred_start_state = L*2-1;
     }
     pair< vector<bool>, size_t > encode(string data) const {
         out << "Lets encode '" << data <<"'"<<endl;
@@ -108,13 +109,13 @@ struct tANS
         vector<bool> res;
         for (size_t i=0; i<data.length(); i++) {
             int s = char2alphabetindex.at(data[i]);
-            out << "state before: " << state << " s:" <<s<< " output bits: <";
+            out << "s:" <<s << " so state should be " << indices[s].size()*2-1 << " or below. state : " << state <<  " -> [";
             while (state > indices[s].size()*2-1) {
                 res.push_back(state & 1);
                 out << (state & 1);
                 state /= 2;
             }
-            out << "> "  << " :" << state << ", so the encoding table leads to ";
+            out << "] -> " << state << ", so the encoding table for " <<s<< " leads to ";
             int next_state = t[state][s];
             out << next_state << endl;
             state = next_state;
@@ -136,14 +137,18 @@ struct tANS
             res+=c;
             out << ") ";
             int next_state = D[state];
-            out << " decoding table lead: " << state <<" => " <<  next_state;
+            out << " decoding table[" << state <<"] => " <<  next_state << ", ";
             state = next_state;
-            out << " reading bits if needed:";
+            if (state < L) 
+                out << state << " < " << L << ": ";
+            else 
+                out << "so the state is";
             while(state < L) {
-                out <<"[" << state <<"->";
+                out <<"[";
+                out << state <<"x2+";
                 assert(!data.empty());
                 state = 2*state + data.back();
-                out << state <<"]";
+                out << data.back() <<"]";
                 data.pop_back();
             }
             out <<" " << state << endl;
@@ -177,6 +182,37 @@ void test_random() {
     }
 }
 
+
+
+void test_compression_ratio() {
+    ofstream logfile("tans_compratio.log");
+    int N = 100000;
+    int TN = 20;
+    for (int test=0;test<TN;test++) {
+        float p = float(test+1)/(TN+2);
+        string vocab, test_str;
+        for (int i=0;i<N;i++) {
+            vocab+='a' + (rand()%1000>p*1000);
+            test_str+='a' + (rand()%1000>p*1000);
+        }
+        int measuredfreq = 0;
+        for (char c : vocab) {
+            measuredfreq += (c=='a');
+        }
+//        cout << measuredfreq << endl;
+        p = float(measuredfreq)/N;
+        tANS tans(logfile);
+        tans.setup(vocab);
+        pair<vector<bool>, int> compressed = tans.encode(test_str);
+        double shannon = 0;
+        for (int i=0;i<test_str.length();i++) {
+            float cp = (test_str[i]=='a')?p:(1.0-p);
+            shannon += -log(cp)/log(2.0);
+        }
+        cout <<"shannon: "<< shannon << " ANS:" << compressed.first.size() <<" (without state stored) with p=" << p << endl;
+    }
+}
+
 void test_file(string fname) {
     ofstream logfile("tans.log");
     string data,line;
@@ -202,17 +238,18 @@ void test_file(string fname) {
 }
 
 int test_simple() {
-    string vocabulary = "aaaabbc";
+    string vocabulary = "aaabcc";
     tANS tans;
     tans.setup(vocabulary);
-    pair<vector<bool>, int> compressed = tans.encode("caaa");
+    pair<vector<bool>, int> compressed = tans.encode("caab");
     string decoded = tans.decode(compressed.second, compressed.first);
 }
 
 int main()
 {
-//    test_simple();
+    test_simple();
 //    test_file("tans.cpp");
-    test_random();
+//    test_random();
+//    test_compression_ratio();
     return 0;
 }
