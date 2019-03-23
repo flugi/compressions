@@ -2,6 +2,8 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <fstream>
+#include <cmath>
 using namespace std;
 
 #define assert(a) {if (!(a)) {cerr << "ASSERT failed at line " <<__LINE__ << endl; exit(1);}}
@@ -27,9 +29,12 @@ struct tANS
     int L;
     int max_I_size;
     map<char, int> freq;
-    void set_cbloom(string s) {
+    ostream & out;
+    int preferred_start_state;
+    tANS(ostream & log=cout) : out(log) {}
+    void setup(string s) {
         int M = s.length();
-        cout << "M: " << M << endl;
+        out << "M: " << M << endl;
         for (char c : s) {
             alphabet.insert(c);
             freq[c]++;
@@ -38,23 +43,24 @@ struct tANS
             char2alphabetindex[c]=symbol.length();
             symbol += c;
         }
+        max_I_size = 0;
         indices=vector<set<int> >(alphabet.size());
         for (char c : alphabet) {
             int s = char2alphabetindex.at(c);
             for (int j=freq.at(c);j<2*freq.at(c);j++) {
                 indices[s].insert(j);
+                if (j>max_I_size) max_I_size = j;
             }
-            cout << endl;
         }
         for (size_t i=0;i<indices.size();i++) {
-            cout << "I of " << symbol[i] <<" :" ;
+            out << "I of " << symbol[i] <<" :" ;
             for (int a : indices[i]) {
-                cout <<a << " ";
+                out <<a << " ";
             }
-            cout << endl;
+            out << endl;
         }
         tANSmap="  ";
-        t = vector<vector<int> >(M*2, vector<int>(alphabet.size(), -1));
+        t = vector<vector<int> >(max_I_size+1, vector<int>(alphabet.size(), -1));
         vector<int> fillcount(alphabet.size(),0);
         vector<int> fillpos(alphabet.size());
         for (size_t i=0;i<fillpos.size();i++) {
@@ -64,21 +70,21 @@ struct tANS
         for (int i=M;i<2*M;i++) {
             do {
                 ++nexttofill%=alphabet.size();
-                cout << nexttofill << " " << fillcount[nexttofill] << " " << freq.at(symbol[nexttofill]) << endl;
+  //              out << nexttofill << " " << fillcount[nexttofill] << " " << freq.at(symbol[nexttofill]) << endl;
             } while (fillcount[nexttofill] >= freq.at(symbol[nexttofill]));
-            cout << nexttofill << endl;
+//            out << nexttofill << endl;
             t[fillpos[nexttofill]][nexttofill] = i;
             fillpos[nexttofill]++;
             fillcount[nexttofill]++;
             tANSmap+=symbol[nexttofill];
         }
-        cout << "Encoding table: " << endl;
+        out << "Encoding table: " << endl;
         for (size_t i=0;i<t.size();i++) {
-            cout << i << ": " ;
+            out << i << ": " ;
             for (int a : t[i]) {
-                cout << a << " ";
+                out << a << " ";
             }
-            cout << endl;
+            out << endl;
         }
         D = vector<int>(2*M);
         for (size_t i=0;i<t.size();i++) {
@@ -87,140 +93,75 @@ struct tANS
                     D[t[i][j]] = i;
             }
         }
-        cout << "Decoding state transitions: ";
+        out << "Decoding state transitions: ";
         for (size_t i=0;i<D.size();i++) {
-            cout << i << "->" << D[i] << "   ";
+            out << i << "->" << D[i] << "   ";
         }
-        cout << endl;
+        out << endl;
         L=M;
-    }
-    void set_AndrewPolar(string s) {
-        tANSmap = string("  ")+s; //2 spaces concatenated to shift the first character to index 2
-        int ml = s.length()+1;
-        assert((ml & (ml+1)) == 0);
-        L = (ml+1)/2;
-        cout << L << endl;
-        for (char c : s) {
-            alphabet.insert(c);
-            freq[c]++;
-        }
-        for (char c : alphabet) {
-            char2alphabetindex[c]=symbol.length();
-            symbol += c;
-        }
-        cout <<"Symbols: " << symbol << endl;
-        for (pair<char,int> p:freq) {
-            cout << p.first << ":" << p.second;
-        }
-        indices = vector<set<int> >(symbol.length());
-        for (size_t i=0;i<s.length();i++) {
-            indices[char2alphabetindex.at(s[i])].insert(i+2); //encoding table should start with 2 in order to avoid infinite 1->1->1 chain
-        }
-        max_I_size = indices[0].size();
-        for (size_t i=1;i<indices.size();i++) {
-            if (indices[i].size() > max_I_size)
-                max_I_size = indices[i].size();
-        }
-        cout << "Encoding table length: " << max_I_size << endl;
-        for (size_t i=0;i<indices.size();i++) {
-            cout << "I of " << i <<" :" ;
-            for (int a : indices[i]) {
-                cout <<a << " ";
-            }
-            cout << endl;
-        }
-        t = vector<vector<int> > (max_I_size+1, vector<int>(alphabet.size(), -1));
-        for (size_t i=0;i<indices.size();i++) {
-            int counter=1;
-            for (int index : indices[i]) {
-                t[counter++][i] = index;
-            }
-        }
-        
-        cout << "Encoding table: " << endl;
-        for (size_t i=0;i<t.size();i++) {
-            cout << i << ": " ;
-            for (int a : t[i]) {
-                cout << a << " ";
-            }
-            cout << endl;
-        }
-        D = vector<int>(2*L);
-        for (size_t i=0;i<t.size();i++) {
-            for (size_t j=0;j<t[i].size();j++) {
-                if (t[i][j]!=-1)
-                    D[t[i][j]] = i;
-            }
-        }
-        cout << "Decoding state transitions: ";
-        for (size_t i=0;i<D.size();i++) {
-            cout << i << "->" << D[i] << "   ";
-        }
-        cout << endl;
+        preferred_start_state = L;
     }
     pair< vector<bool>, size_t > encode(string data) const {
-        cout << "Lets encode '" << data <<"'"<<endl;
-        size_t state = 2*L-1;
+        out << "Lets encode '" << data <<"'"<<endl;
+        
+        size_t state = preferred_start_state;
         vector<bool> res;
         for (size_t i=0; i<data.length(); i++) {
             int s = char2alphabetindex.at(data[i]);
-            cout << "state : " << state << " before bit output" << endl;
-            cout << "output bits: <";
+            out << "state before: " << state << " s:" <<s<< " output bits: <";
             while (state > indices[s].size()*2-1) {
                 res.push_back(state & 1);
-                cout << (state & 1);
+                out << (state & 1);
                 state /= 2;
             }
-            cout << ">" << endl;
-            cout <<" s:" <<s << " state:" << state << endl;
+            out << "> "  << " :" << state << ", so the encoding table leads to ";
             int next_state = t[state][s];
-            cout << "next state: " << next_state << endl;
+            out << next_state << endl;
             state = next_state;
 
         }
         return make_pair(res, state);
     }
     string decode(int start_state, vector<bool> data) const {
-        cout << "Lets decode the bit sequence <";
-        for (bool b : data) cout <<b;
-        cout << "> from state=" << start_state << endl;
+        out << "Lets decode the bit sequence <";
+        for (bool b : data) out <<b;
+        out << "> from state=" << start_state << endl;
         string res="";
         size_t state = start_state;
         do {
-            cout << state << " " << L << endl;
             char c = tANSmap[state-L+2];
-            cout << c << endl;
             int s = char2alphabetindex.at(c);
             int highes_state_for_s = indices.at(s).size()*2+1;
-            cout <<"decoded symbol for state "<<state << " :" << c << ", s=" << s <<" threshold:" <<highes_state_for_s<< endl;
+            out <<"symbol for state "<<state << " :'" << c << "' (s=" << s;
             res+=c;
-            cout << "decoded string to far: '" << res <<"'" << endl;
+            out << ") ";
             int next_state = D[state];
-            cout << "state transition: " << state <<"-> " <<  next_state << endl;
+            out << " decoding table lead: " << state <<" => " <<  next_state;
             state = next_state;
-            cout << "reading bits if needed:";
+            out << " reading bits if needed:";
             while(state < L) {
-                cout <<"[" << state <<"->";
+                out <<"[" << state <<"->";
                 assert(!data.empty());
                 state = 2*state + data.back();
-                cout << state <<"]";
+                out << state <<"]";
                 data.pop_back();
             }
-            cout << endl;
-        } while (!(data.empty() && state == 2*L-1));
+            out <<" " << state << endl;
+        } while (!(data.empty() && state == preferred_start_state));
         return res;
     }
 };
 
-void test() {
+void test_random() {
+    ofstream logfile("tans.log");
     for (int t=0;t<1000;t++) {
     int N = rand()%200+26;
     string cbloommap = "abcdefghijklmnopqrstuvwxyz";
     for (int i=0;i<N-26;i++) {
         cbloommap += 'a'+rand()%26;
     }
-    tANS tans;
-    tans.set_cbloom(cbloommap);
+    tANS tans(logfile);
+    tans.setup(cbloommap);
     string to_encode = "";
     for (int i=0;i<10+rand()%100;i++) {
         to_encode += 'a'+rand()%26;
@@ -236,8 +177,42 @@ void test() {
     }
 }
 
+void test_file(string fname) {
+    ofstream logfile("tans.log");
+    string data,line;
+    ifstream f(fname);
+    getline(f,line);
+    while(f.good()) {
+        data += line;
+        getline(f,line);
+    }
+    f.close();
+    tANS tans(logfile);
+    tans.setup(data);
+    pair<vector<bool>, int> compressed = tans.encode(data);
+    string decoded = tans.decode(compressed.second, compressed.first);
+    if (is_reverse(data, decoded)) {
+        cout << "result OK" << endl;
+        cout << compressed.first.size() << " bits (" << int(ceil(compressed.first.size()/8.0)) << " bytes) vs " << data.length() << " bytes" << endl;
+    } else {
+        cout << "result fails" << endl;
+        cout << data << endl << decoded << endl;
+    }
+    
+}
+
+int test_simple() {
+    string vocabulary = "aaaabbc";
+    tANS tans;
+    tans.setup(vocabulary);
+    pair<vector<bool>, int> compressed = tans.encode("caaa");
+    string decoded = tans.decode(compressed.second, compressed.first);
+}
+
 int main()
 {
-    test();
+//    test_simple();
+//    test_file("tans.cpp");
+    test_random();
     return 0;
 }
