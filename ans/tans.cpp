@@ -3,6 +3,7 @@
 #include <set>
 #include <map>
 #include <fstream>
+#include <sstream>
 #include <cmath>
 using namespace std;
 
@@ -128,11 +129,10 @@ struct tANS
         for (bool b : data) out <<b;
         out << "> from state=" << start_state << endl;
         string res="";
-        size_t state = start_state;
+        int state = start_state;
         do {
             char c = tANSmap[state-L+2];
             int s = char2alphabetindex.at(c);
-            int highes_state_for_s = indices.at(s).size()*2+1;
             out <<"symbol for state "<<state << " :'" << c << "' (s=" << s;
             res+=c;
             out << ") ";
@@ -154,6 +154,29 @@ struct tANS
             out <<" " << state << endl;
         } while (!(data.empty() && state == preferred_start_state));
         return res;
+    }
+    
+    
+    void draw_state_machine() {
+        ofstream out("a.dot");
+        out << "digraph ans {" << endl;
+        out << " node [shape=box]" << endl;
+        for (int state=L;state<2*L;state++) {
+            for (unsigned int s=0; s<alphabet.size();s++) {
+                int rstate = state;
+                stringstream bits;
+                while (rstate > int(indices[s].size()*2-1)) {
+                    bits << (rstate & 1);
+                    rstate /= 2;
+                }
+                int next_state = t[rstate][s];
+//                out << " rstate: " << rstate;
+//                out << "state:" << state << " s:" << s << " ";
+ //               out << " next state:" << next_state << endl;
+                out <<""<< state << " -> " << next_state <<" [label=\"" << symbol.at(s) <<  " [" << bits.str() << "]\"];" << endl;
+                }
+        }
+        out << "}" << endl;
     }
 };
 
@@ -205,7 +228,7 @@ void test_compression_ratio() {
         tans.setup(vocab);
         pair<vector<bool>, int> compressed = tans.encode(test_str);
         double shannon = 0;
-        for (int i=0;i<test_str.length();i++) {
+        for (size_t i=0;i<test_str.length();i++) {
             float cp = (test_str[i]=='a')?p:(1.0-p);
             shannon += -log(cp)/log(2.0);
         }
@@ -237,7 +260,7 @@ void test_file(string fname) {
     
 }
 
-int test_simple() {
+void test_simple() {
     string vocabulary = "aaabcc";
     tANS tans;
     tans.setup(vocabulary);
@@ -245,11 +268,18 @@ int test_simple() {
     string decoded = tans.decode(compressed.second, compressed.first);
 }
 
+void test_statemachine() {
+    tANS tans;
+    tans.setup("aab");
+    tans.draw_state_machine();
+}
+
 int main()
 {
-    test_simple();
+//    test_simple();
 //    test_file("tans.cpp");
 //    test_random();
 //    test_compression_ratio();
+    test_statemachine();
     return 0;
 }
