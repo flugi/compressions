@@ -34,9 +34,48 @@ struct tANS
     int preferred_start_state;      // which state will be the start (and decoding end)
     
     tANS(ostream & log=cout) : out(log) {}
+    void filler_cbloom() {
+        vector<int> fillcount(alphabet.size(),0);
+        vector<int> fillpos(alphabet.size());
+        for (size_t i=0;i<fillpos.size();i++) {
+            fillpos[i] = freq.at(symbol[i]);
+        }
+        int nexttofill = alphabet.size()-1;
+        for (int i=L;i<2*L;i++) {
+            do {
+                ++nexttofill%=alphabet.size();
+  //              out << nexttofill << " " << fillcount[nexttofill] << " " << freq.at(symbol[nexttofill]) << endl;
+            } while (fillcount[nexttofill] >= freq.at(symbol[nexttofill]));
+//            out << nexttofill << endl;
+            t[fillpos[nexttofill]][nexttofill] = i;
+            fillpos[nexttofill]++;
+            fillcount[nexttofill]++;
+        }
+        
+    }
+    void filler_random() {
+        vector<pair<int,int> >free_cells;
+        for (size_t i=0;i<indices.size();i++) {
+            int Is = freq.at(symbol.at(i));
+            for (int j=Is;j<2*Is;j++) {
+                free_cells.push_back(make_pair(j,i));
+            }
+        }
+        out << "[";
+        for (pair<int,int> fp : free_cells) {
+            out << fp.first << ":" << fp.second << " ";
+        }
+        out << "]" << endl;
+        for (int i=0;i<L;i++) {
+            int N = rand()%free_cells.size();
+            t[free_cells[N].first][free_cells[N].second] = i+L;
+            free_cells[N] = free_cells[free_cells.size()-1];
+            free_cells.resize(free_cells.size()-1);
+        }
+    }
     void setup(string s) {
-        int M = s.length();
-        out << "M: " << M << endl;
+        L = s.length();
+        out << "L: " << L << endl;
         for (char c : s) {
             alphabet.insert(c);
             freq[c]++;
@@ -54,6 +93,9 @@ struct tANS
                 if (j>max_I_size) max_I_size = j;
             }
         }
+        for (pair<char, int> fp: freq) {
+            out << "p of " << fp.first << " : " << fp.second <<"/" << L<< endl;
+        }
         for (size_t i=0;i<indices.size();i++) {
             out << "I of " << symbol[i] <<" :" ;
             for (int a : indices[i]) {
@@ -61,25 +103,19 @@ struct tANS
             }
             out << endl;
         }
-        tANSmap="  ";
         t = vector<vector<int> >(max_I_size+1, vector<int>(alphabet.size(), -1));
-        vector<int> fillcount(alphabet.size(),0);
-        vector<int> fillpos(alphabet.size());
-        for (size_t i=0;i<fillpos.size();i++) {
-            fillpos[i] = freq.at(symbol[i]);
+        filler_cbloom();
+//        filler_random();
+        tANSmap="  ";
+        tANSmap.append(L,' ');
+        for (size_t i=0;i<t.size();i++) {
+            for (size_t j=0;j<t[i].size();j++) {
+                if (t[i][j]!=-1)
+                tANSmap[t[i][j]-L+2] = symbol[j];
+            }
         }
-        int nexttofill = alphabet.size()-1;
-        for (int i=M;i<2*M;i++) {
-            do {
-                ++nexttofill%=alphabet.size();
-  //              out << nexttofill << " " << fillcount[nexttofill] << " " << freq.at(symbol[nexttofill]) << endl;
-            } while (fillcount[nexttofill] >= freq.at(symbol[nexttofill]));
-//            out << nexttofill << endl;
-            t[fillpos[nexttofill]][nexttofill] = i;
-            fillpos[nexttofill]++;
-            fillcount[nexttofill]++;
-            tANSmap+=symbol[nexttofill];
-        }
+        out <<"tANSmap:" << tANSmap << endl;
+        
         out << "Encoding table: " << endl;
         for (size_t i=0;i<t.size();i++) {
             out << i << ": " ;
@@ -88,7 +124,7 @@ struct tANS
             }
             out << endl;
         }
-        D = vector<int>(2*M,-1);
+        D = vector<int>(2*L,-1);
         for (size_t i=0;i<t.size();i++) {
             for (size_t j=0;j<t[i].size();j++) {
                 if (t[i][j]!=-1 && i!=0)
@@ -100,7 +136,6 @@ struct tANS
             out << i << "->" << D[i] << "   ";
         }
         out << endl;
-        L=M;
         preferred_start_state = L*2-1;
     }
     pair< vector<bool>, size_t > encode(string data) const {
@@ -161,6 +196,7 @@ struct tANS
         ofstream out("a.dot");
         out << "digraph ans {" << endl;
         out << " node [shape=box]" << endl;
+        out << " rankdir=LR" << endl;
         for (int state=L;state<2*L;state++) {
             for (unsigned int s=0; s<alphabet.size();s++) {
                 int rstate = state;
@@ -178,30 +214,31 @@ struct tANS
         }
         out << "}" << endl;
     }
+
 };
 
 void test_random() {
     ofstream logfile("tans.log");
     for (int t=0;t<1000;t++) {
-    int N = rand()%200+26;
-    string cbloommap = "abcdefghijklmnopqrstuvwxyz";
-    for (int i=0;i<N-26;i++) {
-        cbloommap += 'a'+rand()%26;
-    }
-    tANS tans(logfile);
-    tans.setup(cbloommap);
-    string to_encode = "";
-    for (int i=0;i<10+rand()%100;i++) {
-        to_encode += 'a'+rand()%26;
-    }
-    pair<vector<bool>, int> compressed = tans.encode(to_encode);
-    string decoded = tans.decode(compressed.second, compressed.first);
-    if (is_reverse(to_encode, decoded)) {
-        cout << "result OK" << endl;
-    } else {
-        cout << "result fails" << endl;
-        cout << to_encode << endl << decoded << endl;
-    }
+        int N = rand()%200+26;
+        string cbloommap = "abcdefghijklmnopqrstuvwxyz";
+        for (int i=0;i<N-26;i++) {
+            cbloommap += 'a'+rand()%26;
+        }
+        tANS tans(logfile);
+        tans.setup(cbloommap);
+        string to_encode = "";
+        for (int i=0;i<10+rand()%100;i++) {
+            to_encode += 'a'+rand()%26;
+        }
+        pair<vector<bool>, int> compressed = tans.encode(to_encode);
+        string decoded = tans.decode(compressed.second, compressed.first);
+        if (is_reverse(to_encode, decoded)) {
+            cout << "result OK" << endl;
+        } else {
+            cout << "result fails" << endl;
+            cout << to_encode << endl << decoded << endl;
+        }
     }
 }
 
@@ -270,7 +307,7 @@ void test_simple() {
 
 void test_statemachine() {
     tANS tans;
-    tans.setup("aab");
+    tans.setup("aaabc");
     tans.draw_state_machine();
 }
 
@@ -279,7 +316,7 @@ int main()
 //    test_simple();
 //    test_file("tans.cpp");
 //    test_random();
-//    test_compression_ratio();
-    test_statemachine();
+    test_compression_ratio();
+//    test_statemachine();
     return 0;
 }
