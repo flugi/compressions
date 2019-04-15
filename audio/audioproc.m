@@ -1,4 +1,4 @@
-function [ md  resynth ] = audioproc(w)
+function [ md  resynth ] = audioproc(w,quant)
   s = size(w,1)
   window = 1024;
   step = window/2;
@@ -10,7 +10,7 @@ function [ md  resynth ] = audioproc(w)
   x = w1(mi)';
   x = x .* kbdwin(window,1);
   md = mdct(x);
-  quant = 0.4;
+%  quant = 0.4;
   md = round(md/quant)*quant;
   z1 = x;
   test = imdct(md(:,1));

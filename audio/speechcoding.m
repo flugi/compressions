@@ -22,7 +22,7 @@ function resynth = speechcoding(w)
     x_rs = lpcresynth(a,x(1:6,i),window,qresidual_dirac);
     ratio=energ(i) / sum(abs(x_rs));
     x_rs = x_rs*ratio;
-    z1 = x_rs;% .* kbdwin(window,1);
+    z1 = x_rs.* kbdwin(window,1);
     resyn((i-1)*step+1:(i-1)*step+window) += z1; 
   endfor
   resynth = resyn;
