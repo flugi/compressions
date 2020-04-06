@@ -49,7 +49,7 @@ int bitcount(size_t tablesize) {
 	int sum = 8; // first item is 8 bit always
 	int step = 9;
 	for (size_t i = 257; i<tablesize+257 ;i++) {
-		if ( (i^(i-1))==(i*2-1)) {
+		if ( (i^(i-1))==(i*2-1)) {  //i is power of 2
 			step++;
 		}
 		sum += step;

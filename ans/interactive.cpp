@@ -9,7 +9,7 @@
 using namespace genv;
 using namespace std;
 
-const int Y = 720;
+const int Y = 640;
 const int X = Y*16/9;
 
 struct Stat {

@@ -40,7 +40,7 @@ int main(int argc, char*argv[]) {
         hist[sample]++;
     }
     cout << raw.size() << " samples read, " << raw.size()*2 << " bytes input"<< endl;
-    vlc::NumericSemiBlockCode<6> nbc;
+    vlc::NumericSemiBlockCode<10> nbc;
     vlc::chunk c;
     nbc.encode(raw, c);
     cout <<"Semiblockcode: "<< c.get_size_bits()/8+1<< endl;
