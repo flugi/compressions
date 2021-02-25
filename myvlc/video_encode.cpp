@@ -40,10 +40,15 @@ int main(int argc, char*argv[]) {
         hist[sample]++;
     }
     cout << raw.size() << " samples read, " << raw.size()*2 << " bytes input"<< endl;
-    vlc::NumericSemiBlockCode<10> nbc;
+    vlc::NumericSemiBlockCode<9> nbc;
     vlc::chunk c;
     nbc.encode(raw, c);
     cout <<"Semiblockcode: "<< c.get_size_bits()/8+1<< endl;
+
+	vlc::FiboCode fbc;
+    vlc::chunk fbc_c;
+    fbc.encode(raw, fbc_c);
+    cout <<"Fibonacci coding: "<< fbc_c.get_size_bits()/8+1<< endl;
 
     HuffmanCode hc;
     hc.build(raw);

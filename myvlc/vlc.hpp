@@ -120,6 +120,18 @@ public:
 
 };
 
+/*
+ NumericSemiBlockCode<2>:
+ 00       1/4         
+ 01       1/4       
+ 10       1/4   
+ 1100     1/16
+ 1101     1/16
+ 1110     1/16
+ 111100   1/64
+ 111101   1/64
+ */
+
 template<int K>
 class NumericSemiBlockCode : public PrefixCode<int> {
 public:
@@ -162,6 +174,62 @@ public:
         }
         return false;
     }
+};
+
+class FiboCode : public PrefixCode<int> {
+public:
+	bool put_element(unsigned int x, chunk &c) {
+		chunk a;
+		int fi1=1,fi2=2;
+		std::vector<bool> pattern(2,false);
+		while (x >= fi2) {
+			int nx = fi1+fi2;
+			fi1=fi2;
+			fi2=nx;
+			pattern.push_back(false);
+		}
+		int i=0;
+		while (i<pattern.size()) {
+			if (fi2 <= x) {
+				pattern[i]=true;
+				x-=fi2;
+				int nx = fi2 - fi1;
+				fi2=fi1;
+				fi1=nx;
+				nx = fi2 - fi1;
+				fi2=fi1;
+				fi1=nx;
+				i+=2;
+				
+			} else {
+				int nx = fi2 - fi1;
+				fi2=fi1;
+				fi1=nx;
+				i++;
+			}
+//			std::cout << x << " " << fi1 << " " << fi2 << " ";
+//			for (bool b:pattern) {std::cout << b;}
+//			std::cout<< std::endl;
+			
+		}
+		for (int i=pattern.size()-1;i>=1;i--) {
+			c.put_bit(pattern[i]);
+		};
+		c.put_bit(1);
+		
+		//std::cout << x << " " ;
+		//c.debugprint(std::cout);
+		//std::cout << std::endl;
+	}
+    bool encode(const std::vector<int>& v, chunk& c) override{
+        for (int a : v) {
+            put_element(zigzag(a), c);
+        }
+        return true;
+    }
+	bool decode(const chunk& c, std::vector<int> &w) override {
+		throw std::logic_error("unimplemented");
+	}
 };
 
 struct HC {
