@@ -115,7 +115,14 @@ void semiblockcode_test() {
     }
 }
 
+void fibotest() {
+	vlc::FiboCode fc;
+	vlc::chunk c;
+	fc.encode(std::vector<int>({-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10}),c);
+}
+
 int main() {
+	fibotest();
     chunk_basic_test();
     chunk_concat_test();
     chunk_file_test();
