@@ -207,7 +207,12 @@ int main(int argc, char *argv[]) {
     TANS tans(freq, (1<<precbit));
     vector<BYTE> comp = tans.encode(data);
     string outfname = fname +".tans";
+
+    vector<unsigned short> frq_to_file(256);
+    for (int i=0;i<256;i++) frq_to_file[i] = freq[i];
+
     ofstream of(outfname, ios::binary);
+    of.write((const char *)&frq_to_file[0],2*256);
     of.write((const char *)&comp[0],comp.size());
     cout << comp.size() << endl;
 }
